@@ -1,0 +1,737 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+  body {
+    margin: 0;
+    background:
+      radial-gradient(1200px 600px at 50% -10%, rgba(201, 169, 106, 0.08), transparent 60%),
+      radial-gradient(900px 500px at 100% 110%, rgba(192, 57, 43, 0.06), transparent 55%),
+      #14110d;
+    color: #ece3d2;
+    font-family: 'Noto Serif SC', 'Songti SC', 'STSong', 'SimSun', serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  button {
+    font: inherit;
+    color: inherit;
+  }
+}
+
+/* ===== 灵签求签动画关键帧 ===== */
+@keyframes qian-shake {
+  0%, 100% { transform: rotate(0deg); }
+  20% { transform: rotate(-3deg) translateX(-1px); }
+  40% { transform: rotate(3deg) translateX(1px); }
+  60% { transform: rotate(-2.4deg) translateX(-1px); }
+  80% { transform: rotate(2.4deg) translateX(1px); }
+}
+@keyframes qian-stick-pop {
+  0% { transform: translateY(0); }
+  60% { transform: translateY(-28px); }
+  100% { transform: translateY(-23px); }
+}
+@keyframes qian-reveal {
+  0% { opacity: 0; transform: translateY(20px) scale(0.96); }
+  55% { opacity: 1; }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes qian-btn-glow {
+  0%, 100% { box-shadow: 0 3px 14px rgba(201, 169, 106, 0.3); }
+  50% { box-shadow: 0 4px 24px rgba(201, 169, 106, 0.6); }
+}
+@keyframes qian-shimmer {
+  0% { transform: translateX(-130%) skewX(-18deg); }
+  100% { transform: translateX(240%) skewX(-18deg); }
+}
+
+/* 古风装饰 / 伪元素 / 动画 / 滚动条 —— 这些用 Tailwind 工具类不易表达，集中在此 */
+@layer components {
+  /* 朱红印章「易」 */
+  .seal {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    background: #c0392b;
+    color: #fbe9d6;
+    font-family: 'Ma Shan Zheng', 'STKaiti', 'KaiTi', 'Noto Serif SC', serif;
+    font-size: 26px;
+    line-height: 1;
+    box-shadow: 0 2px 10px rgba(192, 57, 43, 0.4);
+    border: 1px solid rgba(255, 220, 190, 0.25);
+  }
+  .seal-sm {
+    width: 32px;
+    height: 32px;
+    font-size: 19px;
+    border-radius: 8px;
+  }
+
+  /* 隐藏滚动条 */
+  .no-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* 总结高亮卡片（带左侧竖条） */
+  .summary-card {
+    position: relative;
+    overflow: hidden;
+    margin-top: 14px;
+    padding: 14px 16px 12px;
+    border: 1px solid #c9a96a;
+    border-radius: 12px;
+    background: linear-gradient(180deg, rgba(201, 169, 106, 0.14), rgba(201, 169, 106, 0.06));
+    box-shadow: 0 2px 14px rgba(0, 0, 0, 0.25);
+  }
+  .summary-card::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: linear-gradient(180deg, #e7cd95, #c0392b);
+  }
+  .summary-head {
+    font-family: 'Ma Shan Zheng', 'STKaiti', 'KaiTi', 'Noto Serif SC', serif;
+    font-size: 22px;
+    letter-spacing: 4px;
+    color: #e7cd95;
+    margin-bottom: 8px;
+    padding-left: 2px;
+  }
+
+  /* 打字光标三点 */
+  .typing {
+    display: inline-flex;
+    gap: 4px;
+    align-items: center;
+    height: 18px;
+  }
+  .typing i {
+    width: 6px;
+    height: 6px;
+    border-radius: 9999px;
+    background: #c9a96a;
+    animation: blink 1.2s infinite ease-in-out;
+  }
+  .typing i:nth-child(2) {
+    animation-delay: 0.2s;
+  }
+  .typing i:nth-child(3) {
+    animation-delay: 0.4s;
+  }
+
+  /* 极简 markdown 渲染 */
+  .md .md-line {
+    margin: 0;
+  }
+  .md .md-space {
+    height: 8px;
+  }
+  .md strong {
+    color: #e7cd95;
+    font-weight: 600;
+  }
+
+  /* 爻线符号（阳一阴二） */
+  .yang,
+  .yin {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+  }
+  .yang i,
+  .yin i {
+    display: block;
+    height: 9px;
+    border-radius: 2px;
+    background: #c9a96a;
+  }
+  .yang i {
+    width: 78px;
+  }
+  .yin i {
+    width: 35px;
+  }
+
+  /* 六亲配色 */
+  .qin-parent {
+    color: #8fb6e0;
+  }
+  .qin-gui {
+    color: #e08a8a;
+  }
+  .qin-wealth {
+    color: #9bd17a;
+  }
+  .qin-child {
+    color: #7fd0c4;
+  }
+  .qin-bro {
+    color: #a99c84;
+  }
+
+  /* 入场动效（供组件复用） */
+  .fade-up {
+    animation: fade-up 0.28s ease;
+  }
+  .fade-in {
+    animation: fade-in 0.18s ease;
+  }
+  .pop-in {
+    animation: pop-in 0.2s ease;
+  }
+}
+
+@layer utilities {
+  .qian-barrel.shaking .qian-barrel-sticks {
+    animation: qian-shake 0.18s linear infinite;
+  }
+}
+
+/* 以下为组件局部样式（含伪元素 / 子元素状态），不便用工具类表达 */
+@layer components {
+  .modal-note {
+    margin: 0 0 4px;
+    padding: 12px 14px;
+    border: 1px dashed rgba(201, 169, 106, 0.28);
+    border-radius: 10px;
+    background: rgba(201, 169, 106, 0.05);
+    color: #a99c84;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .modal-hint {
+    font-size: 12.5px;
+    color: #a99c84;
+    line-height: 1.8;
+    margin: 0;
+    padding: 11px 13px;
+    background: rgba(201, 169, 106, 0.07);
+    border: 1px solid rgba(201, 169, 106, 0.28);
+    border-left: 3px solid #c9a96a;
+    border-radius: 9px;
+  }
+
+  /* 声音起卦：点击计数 */
+  .sound-counters {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-bottom: 4px;
+  }
+  .sound-counter-title {
+    display: block;
+    font-size: 13px;
+    color: #a99c84;
+    margin-bottom: 8px;
+  }
+  .sound-counter-ctrl {
+    display: flex;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .sound-step {
+    flex: none;
+    width: 44px;
+    border: 1px solid rgba(201, 169, 106, 0.18);
+    border-radius: 10px;
+    background: transparent;
+    color: #e7cd95;
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+    transition: 0.18s;
+  }
+  .sound-step:hover {
+    border-color: #c9a96a;
+    background: rgba(201, 169, 106, 0.1);
+  }
+  .sound-tap {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    padding: 10px;
+    border: 1px solid rgba(201, 169, 106, 0.28);
+    border-radius: 12px;
+    background: rgba(201, 169, 106, 0.06);
+    color: #ece3d2;
+    cursor: pointer;
+    transition: 0.12s;
+  }
+  .sound-tap:hover {
+    border-color: #c9a96a;
+    background: rgba(201, 169, 106, 0.12);
+  }
+  .sound-tap:active {
+    transform: scale(0.97);
+    background: rgba(192, 57, 43, 0.14);
+  }
+  .sound-num {
+    font-size: 30px;
+    font-weight: 600;
+    color: #e7cd95;
+    font-family: 'Noto Serif SC', serif;
+    line-height: 1;
+  }
+  .sound-tap-hint {
+    font-size: 11px;
+    color: #6f6453;
+  }
+  .sound-reset {
+    align-self: flex-end;
+    padding: 6px 14px;
+    border: 1px solid rgba(201, 169, 106, 0.18);
+    border-radius: 999px;
+    background: transparent;
+    color: #a99c84;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .sound-reset:hover {
+    border-color: #c9a96a;
+    color: #c9a96a;
+  }
+
+  /* 爻线：变爻高亮 */
+  .yao-row.changing .yao-symbol i {
+    background: #c0392b;
+    box-shadow: 0 0 8px rgba(192, 57, 43, 0.6);
+  }
+  .yao-row.changing .yao-label {
+    color: #b8443a;
+  }
+
+  /* 起卦过程折叠 */
+  .hex-notes summary {
+    cursor: pointer;
+    color: #c9a96a;
+    font-size: 13px;
+    letter-spacing: 1px;
+    list-style: none;
+    user-select: none;
+  }
+  .hex-notes summary::-webkit-details-marker {
+    display: none;
+  }
+  .hex-notes summary::before {
+    content: '▸ ';
+  }
+  .hex-notes[open] summary::before {
+    content: '▾ ';
+  }
+  .hex-notes pre {
+    white-space: pre-wrap;
+    font-family: 'Noto Serif SC', serif;
+    font-size: 13px;
+    line-height: 1.8;
+    color: #a99c84;
+    margin: 8px 0 4px;
+  }
+
+  /* 灵签 */
+  .qian-result {
+    background: linear-gradient(180deg, rgba(201, 169, 106, 0.06), rgba(33, 27, 20, 0.5));
+    border: 1px solid rgba(201, 169, 106, 0.28);
+    border-radius: 16px;
+    padding: 22px 20px 24px;
+    text-align: center;
+  }
+  .qian-barrel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+    padding: 28px 0 8px;
+  }
+  .qian-barrel-sticks {
+    display: flex;
+    align-items: flex-end;
+    gap: 7px;
+    height: 92px;
+  }
+  .qian-barrel-sticks span {
+    width: 6px;
+    height: 70px;
+    border-radius: 3px 3px 0 0;
+    background: linear-gradient(to top, rgba(201, 169, 106, 0.35), #c9a96a);
+    transform-origin: bottom center;
+  }
+  .qian-barrel-cap {
+    font-size: 12px;
+    color: #6f6453;
+    letter-spacing: 1px;
+  }
+
+  /* 求签按钮：金描边 + 朱印徽标 + 呼吸光晕 + 悬停流光 */
+  .qian-draw-btn {
+    position: relative;
+    overflow: hidden;
+    padding: 12px 26px;
+    font-size: 17px;
+    letter-spacing: 3px;
+    animation: qian-btn-glow 2.6s ease-in-out infinite;
+  }
+  .qian-draw-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 42%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 248, 230, 0.6), transparent);
+    transform: translateX(-130%) skewX(-18deg);
+    pointer-events: none;
+  }
+  .qian-draw-btn:hover:not(:disabled)::before {
+    animation: qian-shimmer 0.9s ease;
+  }
+  .qian-draw-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: #c0392b;
+    color: #fbe9d6;
+    font-family: 'Ma Shan Zheng', 'STKaiti', 'KaiTi', 'Noto Serif SC', serif;
+    font-size: 13px;
+    line-height: 1;
+    box-shadow: inset 0 0 0 1px rgba(255, 220, 190, 0.32);
+  }
+
+  /* 抽签：一签自筒中弹出 */
+  .qian-stick-pop {
+    background: linear-gradient(to top, rgba(201, 169, 106, 0.55), #f3dca9) !important;
+    box-shadow: 0 0 14px rgba(243, 220, 169, 0.75);
+    animation: qian-stick-pop 0.24s ease forwards;
+  }
+
+  /* 签文揭示：带金光的落下 */
+  .qian-reveal {
+    animation: qian-reveal 0.36s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  /* ===== 古风按钮系统（参考换 Tailwind 之前的原生样式） ===== */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-family: 'Noto Serif SC', 'Songti SC', 'STSong', serif;
+    font-size: 15px;
+    line-height: 1;
+    padding: 10px 18px;
+    border-radius: 11px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: 0.18s ease;
+    white-space: nowrap;
+    text-decoration: none;
+  }
+  .btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    filter: none;
+    transform: none;
+  }
+  .btn-primary {
+    background: linear-gradient(180deg, #e7cd95, #c9a96a);
+    color: #2a2014;
+    font-family: 'Ma Shan Zheng', 'STKaiti', 'KaiTi', 'Noto Serif SC', serif;
+    letter-spacing: 2px;
+    font-size: 16px;
+    box-shadow: 0 3px 14px rgba(201, 169, 106, 0.28);
+  }
+  .btn-primary:hover:not(:disabled) {
+    filter: brightness(1.06);
+    transform: translateY(-1px);
+  }
+  .btn-ghost {
+    background: transparent;
+    border-color: rgba(201, 169, 106, 0.3);
+    color: #c9a96a;
+  }
+  .btn-ghost:hover:not(:disabled) {
+    border-color: #c9a96a;
+    background: rgba(201, 169, 106, 0.1);
+    color: #e7cd95;
+  }
+  .btn-danger {
+    background: linear-gradient(180deg, #d8554a, #c0392b);
+    color: #fbe9d6;
+    font-family: 'Ma Shan Zheng', 'STKaiti', 'KaiTi', 'Noto Serif SC', serif;
+    letter-spacing: 2px;
+    font-size: 16px;
+    box-shadow: 0 3px 14px rgba(192, 57, 43, 0.3);
+  }
+  .btn-danger:hover:not(:disabled) {
+    filter: brightness(1.06);
+  }
+  .btn-sm {
+    font-size: 13px;
+    padding: 7px 13px;
+    border-radius: 9px;
+  }
+
+  /* 快捷起卦网格按钮（首页空态 / 对话中） */
+  .qa-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 42px;
+    padding: 9px 10px;
+    border-radius: 12px;
+    border: 1px solid rgba(201, 169, 106, 0.28);
+    background: rgba(42, 34, 24, 0.55);
+    color: #e7cd95;
+    font-family: 'Noto Serif SC', 'Songti SC', serif;
+    font-size: 14.5px;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: 0.18s ease;
+  }
+  .qa-btn:hover {
+    border-color: #c9a96a;
+    background: rgba(201, 169, 106, 0.14);
+    color: #f3e6c8;
+    transform: translateY(-1px);
+  }
+
+  /* ===== 古风加载指示器（配合 Tailwind animate-spin） ===== */
+  .spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border-radius: 9999px;
+    border: 2.5px solid rgba(201, 169, 106, 0.25);
+    border-top-color: #c9a96a;
+    flex: none;
+    box-sizing: border-box;
+  }
+  .spinner-dark {
+    border-color: rgba(42, 32, 20, 0.3);
+    border-top-color: #2a2014;
+  }
+  .loading-block {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 32px 0;
+  }
+  .loading-text {
+    font-size: 13px;
+    letter-spacing: 2px;
+    color: #a99c84;
+  }
+
+  /* ===== 标签导航（选中态用清晰的粗体宋体，避免细笔画看不清） ===== */
+  .tab {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 11px 8px;
+    border: 1px solid transparent;
+    border-radius: 12px;
+    background: transparent;
+    color: #d9ccb1;
+    font-family: 'Noto Serif SC', 'Songti SC', 'STSong', serif;
+    font-weight: 600;
+    font-size: 16px;
+    letter-spacing: 4px;
+    cursor: pointer;
+    transition: 0.18s ease;
+  }
+  .tab:hover {
+    color: #f0dcac;
+    background: rgba(201, 169, 106, 0.12);
+  }
+  .tab-active {
+    color: #1c1408;
+    font-weight: 700;
+    background: linear-gradient(180deg, #f2dca6, #cba86a);
+    border-color: rgba(247, 224, 165, 0.7);
+    box-shadow: 0 4px 16px rgba(201, 169, 106, 0.42);
+  }
+  .tab-active:hover {
+    color: #1c1408;
+    background: linear-gradient(180deg, #f6e2b0, #d0ac6d);
+  }
+
+  /* ===== 统一输入控件（参考换 Tailwind 之前的 .input） ===== */
+  .field {
+    width: 100%;
+    box-sizing: border-box;
+    background: rgba(20, 17, 13, 0.65);
+    border: 1px solid rgba(201, 169, 106, 0.42);
+    border-radius: 12px;
+    padding: 12px 14px;
+    color: #ece3d2;
+    font-family: 'Noto Serif SC', 'Songti SC', 'STSong', serif;
+    font-size: 15px;
+    line-height: 1.5;
+    outline: none;
+    transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
+  }
+  .field::placeholder {
+    color: #8a7c62;
+  }
+  .field:focus {
+    border-color: #e7cd95;
+    background: rgba(30, 24, 17, 0.9);
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3), 0 0 0 3px rgba(201, 169, 106, 0.22);
+  }
+
+  /* ===== 统一卡片（参考换 Tailwind 之前的 .card） ===== */
+  .card {
+    background: linear-gradient(180deg, rgba(43, 35, 24, 0.78), rgba(28, 23, 17, 0.78));
+    border: 1px solid rgba(201, 169, 106, 0.38);
+    border-radius: 18px;
+    padding: 18px;
+    box-shadow: inset 0 0 30px rgba(201, 169, 106, 0.06), 0 8px 28px rgba(0, 0, 0, 0.3);
+  }
+  .card-soft {
+    background: rgba(42, 34, 24, 0.4);
+    border: 1px solid rgba(201, 169, 106, 0.3);
+    border-radius: 16px;
+    padding: 16px;
+  }
+
+  /* ===== 统一弹框（参考换 Tailwind 之前的 .modal） ===== */
+  .modal {
+    width: 100%;
+    max-width: 440px;
+    border-radius: 22px;
+    border: 1px solid rgba(201, 169, 106, 0.42);
+    background: linear-gradient(180deg, rgba(40, 32, 23, 0.99), rgba(26, 21, 15, 0.99));
+    box-shadow: 0 26px 64px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(201, 169, 106, 0.08);
+    overflow: hidden;
+  }
+
+  /* ===== 今日一卦·宜忌（显式主题色边框，避免透明度修饰符回退成白边） ===== */
+  .yi-ji {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px dashed rgba(201, 169, 106, 0.28);
+  }
+  .yi-ji-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .yi-badge,
+  .ji-badge {
+    flex: none;
+    width: 30px;
+    height: 30px;
+    border-radius: 9px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Ma Shan Zheng', 'STKaiti', 'KaiTi', 'Noto Serif SC', serif;
+    font-size: 17px;
+    line-height: 1;
+    color: #f6efe2;
+  }
+  .yi-badge {
+    background: #3f7d5a;
+    box-shadow: 0 2px 8px rgba(63, 125, 90, 0.35);
+  }
+  .ji-badge {
+    background: #c0392b;
+    box-shadow: 0 2px 8px rgba(192, 57, 43, 0.35);
+  }
+  .yi-chips,
+  .ji-chips {
+    flex: 1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 3px;
+  }
+  .yi-chip,
+  .ji-chip {
+    font-size: 12.5px;
+    line-height: 1.4;
+    padding: 5px 12px;
+    border-radius: 999px;
+  }
+  .yi-chip {
+    border: 1px solid rgba(63, 125, 90, 0.55);
+    background: rgba(63, 125, 90, 0.16);
+    color: #c7ead4;
+  }
+  .ji-chip {
+    border: 1px solid rgba(192, 57, 43, 0.55);
+    background: rgba(192, 57, 43, 0.16);
+    color: #f0bcb5;
+  }
+
+  /* ===== 热门问题：紧凑药丸标签（替代占空间的 2 列卡片） ===== */
+  .hot-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 9px;
+  }
+  .hot-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border-radius: 999px;
+    border: 1px solid rgba(201, 169, 106, 0.32);
+    background: rgba(42, 34, 24, 0.45);
+    color: #e7cd95;
+    font-family: 'Noto Serif SC', 'Songti SC', 'STSong', serif;
+    font-size: 13.5px;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: 0.18s ease;
+    white-space: nowrap;
+  }
+  .hot-chip::before {
+    content: '卜';
+    font-family: 'Ma Shan Zheng', 'STKaiti', 'KaiTi', 'Noto Serif SC', serif;
+    font-size: 14px;
+    color: rgba(201, 169, 106, 0.55);
+    transition: 0.18s ease;
+  }
+  .hot-chip:hover {
+    border-color: #c9a96a;
+    background: rgba(201, 169, 106, 0.16);
+    color: #f3e6c8;
+    transform: translateY(-1px);
+  }
+  .hot-chip:hover::before {
+    color: #c0392b;
+  }
+}
