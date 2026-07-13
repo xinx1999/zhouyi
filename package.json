@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
+    "predev": "node scripts/free-ports.mjs",
     "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
+    "free-ports": "node scripts/free-ports.mjs",
     "dev:server": "tsx watch server/index.ts",
     "dev:client": "vite",
     "build": "vite build",
