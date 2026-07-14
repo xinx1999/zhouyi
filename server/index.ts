@@ -29,6 +29,18 @@ function maskKey(k?: string): string | undefined {
   return k.slice(0, 8) + "****" + k.slice(-4);
 }
 
+// Agnes 模型每次回复自带的开场白（需剥除，避免每条回答都顶着「我是…」）
+// 兼容半角/全角逗号、有无句末句号、末尾换行等常见变体
+const AGNES_INTRO_CANDIDATES = [
+  "你好。我是 Agnes-2.0-Flash,由 Sapiens AI 开发。",
+  "你好。我是 Agnes-2.0-Flash，由 Sapiens AI 开发。",
+  "你好，我是 Agnes-2.0-Flash,由 Sapiens AI 开发。",
+  "你好，我是 Agnes-2.0-Flash，由 Sapiens AI 开发。",
+  "你好。我是 Agnes-2.0-Flash,由 Sapiens AI 开发",
+  "你好，我是 Agnes-2.0-Flash，由 Sapiens AI 开发",
+];
+const AGNES_INTRO_MAXLEN = Math.max(...AGNES_INTRO_CANDIDATES.map((s) => s.length));
+
 // 安全解析 JSON（meta 等字符串字段）
 function safeJsonParse(s: string): any | null {
   try {
@@ -523,7 +535,9 @@ app.post("/api/chat", async (req, res) => {
     const reader = resp.body.getReader();
     const decoder = new TextDecoder();
     let buffer = "";
-    let fullResponse = "";
+    let fullResponse = "";        // 模型原始输出（含可能的开场白前缀）
+    let cleanResponse = "";       // 已剥除开场白后的干净输出
+    let introStripped = false;   // 是否已判定过开场白（前几段缓冲期内为 false）
 
     while (true) {
       const { done, value } = await reader.read();
@@ -543,7 +557,36 @@ app.post("/api/chat", async (req, res) => {
           const delta = json.choices?.[0]?.delta?.content;
           if (delta) {
             fullResponse += delta;
-            res.write(`data: ${JSON.stringify({ type: "text", content: delta })}\n\n`);
+            // 剥除 Agnes 模型自带的开场白前缀（仅在回答开头出现一次）
+            if (!introStripped) {
+              const matched =
+                AGNES_INTRO_CANDIDATES.find(
+                  (p) =>
+                    fullResponse.startsWith(p) ||
+                    fullResponse.startsWith(p + "\n") ||
+                    fullResponse.startsWith(p + "\n\n")
+                );
+              if (matched) {
+                const tail = fullResponse.slice(matched.length);
+                if (tail) {
+                  cleanResponse += tail;
+                  res.write(`data: ${JSON.stringify({ type: "text", content: tail })}\n\n`);
+                }
+                introStripped = true;
+              } else if (fullResponse.length > AGNES_INTRO_MAXLEN) {
+                // 已超过最长候选前缀仍未匹配 → 本回答无开场白，整体放行
+                const tail = fullResponse.slice(cleanResponse.length);
+                if (tail) {
+                  cleanResponse += tail;
+                  res.write(`data: ${JSON.stringify({ type: "text", content: tail })}\n\n`);
+                }
+                introStripped = true;
+              }
+              // 否则继续累积，等待前缀完整到达
+            } else {
+              cleanResponse += delta;
+              res.write(`data: ${JSON.stringify({ type: "text", content: delta })}\n\n`);
+            }
           }
         } catch {
           // 忽略无法解析的片段
@@ -551,12 +594,22 @@ app.post("/api/chat", async (req, res) => {
       }
     }
 
+    // 流结束：若仍有未 emit 的残留（如极短回答未达判定阈值），统一放行
+    if (!introStripped) {
+      const tail = fullResponse.slice(cleanResponse.length);
+      if (tail) {
+        cleanResponse += tail;
+        res.write(`data: ${JSON.stringify({ type: "text", content: tail })}\n\n`);
+      }
+      introStripped = true;
+    }
+
     // 保存助手消息
     db.createMessage({
       id: assistantMessageId,
       session_id: session.id,
       role: "assistant",
-      content: fullResponse,
+      content: cleanResponse,
       model: selectedModel,
       created_at: new Date().toISOString(),
       tool_calls: null,
@@ -574,7 +627,7 @@ app.post("/api/chat", async (req, res) => {
     res.write(`data: ${JSON.stringify({ type: "done" })}\n\n`);
     if (isResume) generating.delete(session.id);
     res.end();
-    console.log(`[Chat] 请求完成 ✓ (共 ${fullResponse.length} 字)`);
+    console.log(`[Chat] 请求完成 ✓ (共 ${cleanResponse.length} 字)`);
   } catch (error: any) {
     console.error(`[Chat] 错误:`, error?.message);
     res.write(`data: ${JSON.stringify({ type: "error", message: error?.message || "处理请求时发生错误" })}\n\n`);
