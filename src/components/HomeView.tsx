@@ -1,4 +1,4 @@
-import { useMemo, useState, type CSSProperties } from 'react';
+import { useMemo, useState } from 'react';
 import type { CastRequest, DailyData, HistoryItem } from '../types';
 import type { CastPreset } from './QuickActions';
 import type { CastType } from './CastModal';

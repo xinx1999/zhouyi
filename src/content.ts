@@ -1,20 +1,8 @@
-// 首页信息流静态内容：热门问题 / 推荐学习内容 / 易经知识
-// 点击「热门问题」会发起一次起卦问询；学习/知识为科普卡片。
+// 首页信息流静态内容：热门问题（点击即发起一次起卦问询）
 
 export interface HotQuestion {
   title: string;
   question: string;
-}
-
-export interface LearnItem {
-  title: string;
-  desc: string;
-  tag: string;
-}
-
-export interface KnowledgeItem {
-  title: string;
-  desc: string;
 }
 
 // 热门问题（点击即起卦）
@@ -27,25 +15,6 @@ export const HOT_QUESTIONS: HotQuestion[] = [
   { title: '与人和解否？', question: '我与一人生了嫌隙，问是否宜主动和解、如何相处。' },
   { title: '身体要注意什么？', question: '我想问问近期的身心安康，有何当注意之处。' },
   { title: '创业时机到了吗？', question: '我想问问眼下创业、开店的时机是否成熟。' },
-];
-
-// 推荐学习内容（《周易》入门阶梯）
-export const LEARNING: LearnItem[] = [
-  { title: '《周易》入门三书', desc: '傅佩荣《intro to I Ching》、黄寿祺《周易译注》、南怀瑾《易经杂说》，由浅入深。', tag: '书单' },
-  { title: '先懂八卦，再读六十四卦', desc: '乾兑离震巽坎艮坤八经卦是基石，记住卦象与自然属性，六十四卦迎刃而解。', tag: '方法' },
-  { title: '卦辞与爻辞怎么读', desc: '卦辞言全局时势，爻辞逐位细辨；初难知、上易知，中间几爻最见变化。', tag: '读法' },
-  { title: '象传：借自然悟人事', desc: '「天行健，君子以自强不息」——象传把卦象化为修身准则，最宜日课诵读。', tag: '心法' },
-  { title: '起卦不必迷信', desc: '「善易者不卜」——占卜是借卦象照见当下、理清思绪，而非定数宿命。', tag: '观念' },
-];
-
-// 易经知识推荐
-export const KNOWLEDGE: KnowledgeItem[] = [
-  { title: '阴阳', desc: '一阴一阳之谓道。万物皆由对立又互补的两面构成，变化即阴阳消长。' },
-  { title: '八卦', desc: '乾兑离震巽坎艮坤，分别象天泽火雷风水山地，是描述世界的基本符号。' },
-  { title: '六十四卦', desc: '八经卦两两相叠而成六十四别卦，每一卦是一幅特定的时势图景。' },
-  { title: '五行', desc: '金木水火土相生相克，常与卦象配合，用以推断气运生克。' },
-  { title: '变爻', desc: '老阳○、老阴×为变爻。变则通，由本卦推之卦，正见「易」之妙。' },
-  { title: '三才', desc: '每卦六爻分天地人三才：初、二为地，三、四为人，五、上为天。' },
 ];
 
 // ===== 灵签（求签） =====
@@ -880,14 +849,6 @@ export const LINGQIAN_LEVEL_COLOR: Record<string, string> = {
 export const LINGQIAN_BY_NUM: Record<number, LingQian> = Object.fromEntries(
   LINGQIAN.map((q) => [q.num, q])
 );
-
-// 今日标签（用于分享图副标题）
-export function todayLabel(): string {
-  const d = new Date();
-  const wd = ['日', '一', '二', '三', '四', '五', '六'][d.getDay()];
-  const p = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} · 星期${wd}`;
-}
 
 // 按日期取「今日一签」：全年逐日不同、当天恒定
 export function dailyLingQian(): LingQian {
