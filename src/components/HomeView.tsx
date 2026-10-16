@@ -27,10 +27,22 @@ interface Props {
   onAsk: (text: string, cast?: CastRequest) => void;
   onRandom: () => void;
   onOpenCast: (type: CastType) => void;
+  onOpenBazi: () => void;
+  onOpenZiwei: () => void;
+  onOpenTarot: () => void;
+  onOpenQimen: () => void;
+  onOpenDaliuren: () => void;
+  onOpenDream: () => void;
+  onOpenHepan: () => void;
+  onOpenFace: () => void;
+  onOpenPalm: () => void;
+  onOpenMbti: () => void;
   onOpenHistory: (id: string) => void;
   onOpenLingQian: (item: HistoryItem) => void;
   onRecord: (num: number, name: string, level: string, source: string) => void;
   onDeleteHistory: (id: string) => void;
+  onExportHistory: () => void;
+  onClearHistory: () => void;
 }
 
 function relTime(iso: string): string {
@@ -108,10 +120,22 @@ export function HomeView({
   onAsk,
   onRandom,
   onOpenCast,
+  onOpenBazi,
+  onOpenZiwei,
+  onOpenTarot,
+  onOpenQimen,
+  onOpenDaliuren,
+  onOpenDream,
+  onOpenHepan,
+  onOpenFace,
+  onOpenPalm,
+  onOpenMbti,
   onOpenHistory,
   onOpenLingQian,
   onRecord,
   onDeleteHistory,
+  onExportHistory,
+  onClearHistory,
 }: Props) {
   const [q, setQ] = useState('');
   const [tab, setTab] = useState<TabKey>('today');
@@ -129,7 +153,7 @@ export function HomeView({
     setQ('');
   };
 
-  const preset: CastPreset = { message: '', cast: { method: 'coin' } };
+  const preset: CastPreset = { label: '', message: '', cast: { method: 'coin' } };
 
   const todayKey = todayKeyStr();
   const dateGroupsOf = (items: HistoryItem[]): [string, HistoryItem[]][] => {
@@ -434,6 +458,205 @@ export function HomeView({
             </div>
           </section>
 
+          <section className="flex flex-col gap-3">
+            <h2 className="font-brush text-[19px] text-gold-bright tracking-[2px] m-0 pl-[11px] border-l-[3px] border-vermilion leading-[1.1]">
+              命理排盘
+            </h2>
+            <p className="text-[13px] text-fg-dim leading-relaxed m-0">
+              不占事，只论命——依生辰四柱推一生格局与大运流年。
+            </p>
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+              <button
+                className="flex items-center gap-3 text-left bg-panel-2/50 border border-gold-dim rounded-xl p-3 cursor-pointer transition hover:border-gold hover:bg-gold-dim/20 hover:-translate-y-px"
+                onClick={onOpenBazi}
+              >
+                <span className="flex-none w-11 h-11 rounded-lg bg-vermilion text-[#fbe9d6] font-brush text-2xl flex items-center justify-center shadow-[0_2px_10px_rgba(192,57,43,0.3)]">
+                  命
+                </span>
+                <span className="flex flex-col min-w-0">
+                  <span className="font-serif text-[15px] text-gold-bright">八字排盘</span>
+                  <span className="text-xs text-fg-dim mt-0.5 truncate">四柱 · 十神 · 五行 · 大运</span>
+                  <span className="text-[11px] text-fg-faint mt-0.5 leading-snug">论一生格局与流年运势</span>
+                </span>
+              </button>
+              <button
+                className="flex items-center gap-3 text-left bg-panel-2/50 border border-gold-dim rounded-xl p-3 cursor-pointer transition hover:border-gold hover:bg-gold-dim/20 hover:-translate-y-px"
+                onClick={onOpenZiwei}
+              >
+                <span className="flex-none w-11 h-11 rounded-lg bg-vermilion text-[#fbe9d6] font-brush text-2xl flex items-center justify-center shadow-[0_2px_10px_rgba(192,57,43,0.3)]">
+                  星
+                </span>
+                <span className="flex flex-col min-w-0">
+                  <span className="font-serif text-[15px] text-gold-bright">紫微斗数</span>
+                  <span className="text-xs text-fg-dim mt-0.5 truncate">十二宫 · 主星 · 四化 · 大限</span>
+                  <span className="text-[11px] text-fg-faint mt-0.5 leading-snug">看星曜宫位与运限流转</span>
+                </span>
+              </button>
+              <button
+                className="flex items-center gap-3 text-left bg-panel-2/50 border border-gold-dim rounded-xl p-3 cursor-pointer transition hover:border-gold hover:bg-gold-dim/20 hover:-translate-y-px"
+                onClick={onOpenHepan}
+              >
+                <span className="flex-none w-11 h-11 rounded-lg bg-vermilion text-[#fbe9d6] font-brush text-2xl flex items-center justify-center shadow-[0_2px_10px_rgba(192,57,43,0.3)]">
+                  合
+                </span>
+                <span className="flex flex-col min-w-0">
+                  <span className="font-serif text-[15px] text-gold-bright">合盘 · 合婚</span>
+                  <span className="text-xs text-fg-dim mt-0.5 truncate">夫妻宫 · 生肖 · 五行互补</span>
+                  <span className="text-[11px] text-fg-faint mt-0.5 leading-snug">看两人是否相宜</span>
+                </span>
+              </button>
+            </div>
+          </section>
+
+          <section className="flex flex-col gap-3">
+            <h2 className="font-brush text-[19px] text-gold-bright tracking-[2px] m-0 pl-[11px] border-l-[3px] border-vermilion leading-[1.1]">
+              塔罗占卜
+            </h2>
+            <p className="text-[13px] text-fg-dim leading-relaxed m-0">
+              西方占术，以牌面意象观照当下——单牌速断，或凯尔特十字细论始末。
+            </p>
+            <button
+              className="flex items-center gap-3 text-left bg-panel-2/50 border border-gold-dim rounded-xl p-3 cursor-pointer transition hover:border-gold hover:bg-gold-dim/20 hover:-translate-y-px"
+              onClick={onOpenTarot}
+            >
+              <span className="flex-none w-11 h-11 rounded-lg bg-vermilion text-[#fbe9d6] font-brush text-2xl flex items-center justify-center shadow-[0_2px_10px_rgba(192,57,43,0.3)]">
+                牌
+              </span>
+              <span className="flex flex-col min-w-0">
+                <span className="font-serif text-[15px] text-gold-bright">塔罗抽牌</span>
+                <span className="text-xs text-fg-dim mt-0.5 truncate">5 种牌阵 · 78 张牌 · 正逆位</span>
+                <span className="text-[11px] text-fg-faint mt-0.5 leading-snug">
+                  单牌速断、三牌时间流、凯尔特十字
+                </span>
+              </span>
+            </button>
+          </section>
+
+          <section className="flex flex-col gap-3">
+            <h2 className="font-brush text-[19px] text-gold-bright tracking-[2px] m-0 pl-[11px] border-l-[3px] border-vermilion leading-[1.1]">
+              奇门遁甲
+            </h2>
+            <p className="text-[13px] text-fg-dim leading-relaxed m-0">
+              古之术数重「时空择吉」——以起局时刻排九宫五层盘，看值符值使与八门九星，指宜动之方位时辰。
+            </p>
+            <button
+              className="flex items-center gap-3 text-left bg-panel-2/50 border border-gold-dim rounded-xl p-3 cursor-pointer transition hover:border-gold hover:bg-gold-dim/20 hover:-translate-y-px"
+              onClick={onOpenQimen}
+            >
+              <span className="flex-none w-11 h-11 rounded-lg bg-vermilion text-[#fbe9d6] font-brush text-2xl flex items-center justify-center shadow-[0_2px_10px_rgba(192,57,43,0.3)]">
+                奇
+              </span>
+              <span className="flex flex-col min-w-0">
+                <span className="font-serif text-[15px] text-gold-bright">奇门遁甲排盘</span>
+                <span className="text-xs text-fg-dim mt-0.5 truncate">九宫 · 八门 · 九星 · 八神</span>
+                <span className="text-[11px] text-fg-faint mt-0.5 leading-snug">按节气定局（拆补法），重时空择吉</span>
+              </span>
+            </button>
+          </section>
+
+          <section className="flex flex-col gap-3">
+            <h2 className="font-brush text-[19px] text-gold-bright tracking-[2px] m-0 pl-[11px] border-l-[3px] border-vermilion leading-[1.1]">
+              大六壬
+            </h2>
+            <p className="text-[13px] text-fg-dim leading-relaxed m-0">
+              古称「三式」之一——以月将加占时立天地盘，观四课三传，断事之来由与终始。
+            </p>
+            <button
+              className="flex items-center gap-3 text-left bg-panel-2/50 border border-gold-dim rounded-xl p-3 cursor-pointer transition hover:border-gold hover:bg-gold-dim/20 hover:-translate-y-px"
+              onClick={onOpenDaliuren}
+            >
+              <span className="flex-none w-11 h-11 rounded-lg bg-vermilion text-[#fbe9d6] font-brush text-2xl flex items-center justify-center shadow-[0_2px_10px_rgba(192,57,43,0.3)]">
+                壬
+              </span>
+              <span className="flex flex-col min-w-0">
+                <span className="font-serif text-[15px] text-gold-bright">大六壬起课</span>
+                <span className="text-xs text-fg-dim mt-0.5 truncate">天地盘 · 四课 · 三传 · 神煞</span>
+                <span className="text-[11px] text-fg-faint mt-0.5 leading-snug">月将加占时，断事之终始</span>
+              </span>
+            </button>
+          </section>
+
+          <section className="flex flex-col gap-3">
+            <h2 className="font-brush text-[19px] text-gold-bright tracking-[2px] m-0 pl-[11px] border-l-[3px] border-vermilion leading-[1.1]">
+              周公解梦
+            </h2>
+            <p className="text-[13px] text-fg-dim leading-relaxed m-0">
+              把梦说给我听——从 286 个传统意象中检索你梦中出现的事物，依民俗解梦之法细细道来。
+            </p>
+            <button
+              className="flex items-center gap-3 text-left bg-panel-2/50 border border-gold-dim rounded-xl p-3 cursor-pointer transition hover:border-gold hover:bg-gold-dim/20 hover:-translate-y-px"
+              onClick={onOpenDream}
+            >
+              <span className="flex-none w-11 h-11 rounded-lg bg-vermilion text-[#fbe9d6] font-brush text-2xl flex items-center justify-center shadow-[0_2px_10px_rgba(192,57,43,0.3)]">
+                梦
+              </span>
+              <span className="flex flex-col min-w-0">
+                <span className="font-serif text-[15px] text-gold-bright">周公解梦</span>
+                <span className="text-xs text-fg-dim mt-0.5 truncate">意象检索 · 情境通解 · 民俗参考</span>
+                <span className="text-[11px] text-fg-faint mt-0.5 leading-snug">286 个传统意象，说清梦里的暗示</span>
+              </span>
+            </button>
+          </section>
+
+          <section className="flex flex-col gap-3">
+            <h2 className="font-brush text-[19px] text-gold-bright tracking-[2px] m-0 pl-[11px] border-l-[3px] border-vermilion leading-[1.1]">
+              相术看相
+            </h2>
+            <p className="text-[13px] text-fg-dim leading-relaxed m-0">
+              上传清晰照片，依传统相术观察面部或掌纹；仅作文化参考，不作命运断言。
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                className="flex items-center gap-3 text-left bg-panel-2/50 border border-gold-dim rounded-xl p-3 cursor-pointer transition hover:border-gold hover:bg-gold-dim/20 hover:-translate-y-px"
+                onClick={onOpenFace}
+              >
+                <span className="flex-none w-11 h-11 rounded-lg bg-vermilion text-[#fbe9d6] font-brush text-2xl flex items-center justify-center shadow-[0_2px_10px_rgba(192,57,43,0.3)]">
+                  面
+                </span>
+                <span className="flex flex-col min-w-0">
+                  <span className="font-serif text-[15px] text-gold-bright">面相</span>
+                  <span className="text-xs text-fg-dim mt-0.5 truncate">三停 · 五岳 · 五官</span>
+                  <span className="text-[11px] text-fg-faint mt-0.5 leading-snug">看面部轮廓与气色</span>
+                </span>
+              </button>
+              <button
+                className="flex items-center gap-3 text-left bg-panel-2/50 border border-gold-dim rounded-xl p-3 cursor-pointer transition hover:border-gold hover:bg-gold-dim/20 hover:-translate-y-px"
+                onClick={onOpenPalm}
+              >
+                <span className="flex-none w-11 h-11 rounded-lg bg-vermilion text-[#fbe9d6] font-brush text-2xl flex items-center justify-center shadow-[0_2px_10px_rgba(192,57,43,0.3)]">
+                  掌
+                </span>
+                <span className="flex flex-col min-w-0">
+                  <span className="font-serif text-[15px] text-gold-bright">手相</span>
+                  <span className="text-xs text-fg-dim mt-0.5 truncate">三大主线 · 掌丘 · 掌形</span>
+                  <span className="text-[11px] text-fg-faint mt-0.5 leading-snug">看掌纹与手型特征</span>
+                </span>
+              </button>
+            </div>
+          </section>
+
+          <section className="flex flex-col gap-3">
+            <h2 className="font-brush text-[19px] text-gold-bright tracking-[2px] m-0 pl-[11px] border-l-[3px] border-vermilion leading-[1.1]">
+              MBTI 性格测评
+            </h2>
+            <p className="text-[13px] text-fg-dim leading-relaxed m-0">
+              不靠生辰、不靠卦象——八十道题看清你自己的行事偏好。
+            </p>
+            <button
+              className="flex items-center gap-3 text-left bg-panel-2/50 border border-gold-dim rounded-xl p-3 cursor-pointer transition hover:border-gold hover:bg-gold-dim/20 hover:-translate-y-px"
+              onClick={onOpenMbti}
+            >
+              <span className="flex-none w-11 h-11 rounded-lg bg-vermilion text-[#fbe9d6] font-brush text-2xl flex items-center justify-center shadow-[0_2px_10px_rgba(192,57,43,0.3)]">
+                性
+              </span>
+              <span className="flex flex-col min-w-0">
+                <span className="font-serif text-[15px] text-gold-bright">MBTI 测评</span>
+                <span className="text-xs text-fg-dim mt-0.5 truncate">80 题 · 四维度 · 16 型</span>
+                <span className="text-[11px] text-fg-faint mt-0.5 leading-snug">能量 · 信息 · 决策 · 生活态度</span>
+              </span>
+            </button>
+          </section>
+
           <details className="hex-notes mt-1">
             <summary>进阶起卦法（梅花易数 · 纳甲六爻 · 揲蓍）</summary>
             <div className="flex flex-col gap-[22px] mt-3">
@@ -486,14 +709,32 @@ export function HomeView({
       {tab === 'record' && (
         <div className="flex flex-col gap-[22px] fade-up">
           <section className="flex flex-col gap-3">
-            <h2 className="font-brush text-[19px] text-gold-bright tracking-[2px] m-0 pl-[11px] border-l-[3px] border-vermilion leading-[1.1] flex items-center gap-2">
-              最近使用记录
+            <div className="flex items-center justify-between pl-[11px] border-l-[3px] border-vermilion">
+              <h2 className="font-brush text-[19px] text-gold-bright tracking-[2px] m-0 leading-[1.1] flex items-center gap-2">
+                最近使用记录
+                {history.length > 0 && (
+                  <span className="min-w-[18px] h-[18px] px-1.5 rounded-full bg-vermilion text-[#fbe9d6] font-serif text-[11px] leading-[18px]">
+                    {history.length}
+                  </span>
+                )}
+              </h2>
               {history.length > 0 && (
-                <span className="min-w-[18px] h-[18px] px-1.5 rounded-full bg-vermilion text-[#fbe9d6] font-serif text-[11px] leading-[18px]">
-                  {history.length}
-                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    className="text-xs text-fg-dim border border-gold-dim rounded-full px-2.5 py-1 bg-transparent hover:text-gold-bright hover:border-gold-bright transition"
+                    onClick={onExportHistory}
+                  >
+                    导出
+                  </button>
+                  <button
+                    className="text-xs text-[#e0a39c] border border-[#b8554a] rounded-full px-2.5 py-1 bg-transparent hover:text-vermilion hover:border-vermilion transition"
+                    onClick={onClearHistory}
+                  >
+                    清空
+                  </button>
+                </div>
               )}
-            </h2>
+            </div>
             {history.length === 0 ? (
               loadingHistory ? (
                 <Loading text="正在载入记录…" />

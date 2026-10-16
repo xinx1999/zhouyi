@@ -1,8 +1,29 @@
 // ============================================================
 // 周易起卦引擎
-// 支持五种起卦方式：三枚铜钱法 / 数字起卦 / 时间起卦 / 汉字起卦 / 方位起卦
+// 支持九种起卦方式：铜钱 / 数字 / 时间 / 汉字 / 方位 / 声音 / 报数 / 姓名生辰 / 揲蓍
 // 输出结构化的卦象数据，供前端可视化与模型解读
+//
+// 分层：卦象基础数据在 hexagram.ts；干支与五行在 ganzhi.ts；
+//       断卦要素（六爻用神·空亡 / 梅花体用）在 liuyao.ts / meihua.ts。
 // ============================================================
+import { BRANCH_ELEMENT } from './ganzhi.js';
+import {
+  type HexLine,
+  type HexagramInfo,
+  type TrigramInfo,
+  TRIGRAMS,
+  XIANTIAN,
+  HEXAGRAM_RAW,
+  buildHexagram,
+  trigramByBinary,
+  trigramByMod8,
+} from './hexagram.js';
+import { liuQinOf, analyzeLiuyao, type LiuyaoAnalysis, type YongShenTopic } from './liuyao.js';
+import { analyzeMeihua, type MeihuaAnalysis } from './meihua.js';
+import { LIUYAO_INTERPRETATION, MEIHUA_INTERPRETATION } from './interpretation.js';
+
+// 卦象基础类型转出，保持对外接口不变
+export type { HexLine, HexagramInfo, TrigramInfo } from './hexagram.js';
 
 // ---------- 类型定义 ----------
 export type CastMethod = 'coin' | 'number' | 'time' | 'char' | 'direction' | 'sound' | 'report' | 'yarrow' | 'person';
@@ -71,31 +92,8 @@ export interface CastRequest {
   name?: string;
   birthday?: string;
   gender?: 'male' | 'female';
-}
-
-// 单爻
-export interface HexLine {
-  yin: boolean;        // true=阴爻, false=阳爻
-  changing: boolean;   // 是否变爻（老阳/老阴）
-  value: 6 | 7 | 8 | 9; // 6=老阴 7=少阳 8=少阴 9=老阳
-  toss?: number[];     // 铜钱法：三次抛掷结果（1=阳，0=阴）
-}
-
-// 经卦（八卦）信息
-export interface TrigramInfo {
-  id: string;
-  name: string;   // 卦名（乾兑离震巽坎艮坤）
-  nature: string; // 自然属性（天泽火雷风山水地）
-  binary: number[]; // 三爻，从初到上（下→上）
-}
-
-// 别卦（六十四卦）信息
-export interface HexagramInfo {
-  seq: number;
-  name: string;
-  upper: TrigramInfo; // 上卦（外卦）
-  lower: TrigramInfo; // 下卦（内卦）
-  lines: HexLine[];   // 六爻，自下而上
+  // 六爻占问主题（决定用神）；缺省时由问题文本自动推断
+  yongShenTopic?: YongShenTopic;
 }
 
 export interface CastResult {
@@ -108,133 +106,12 @@ export interface CastResult {
   najia?: NajiaData | null;   // 纳甲六爻排盘·本卦（仅 najia 模式附带）
   najiaZhi?: NajiaData | null; // 纳甲六爻排盘·变卦（有变爻且 najia 模式时附带）
   yarrowSteps?: YarrowYao[];  // 揲蓍法十八变分步演算（仅 yarrow 模式附带）
+  liuyao?: LiuyaoAnalysis | null; // 六爻断卦要素：空亡·用神·旺衰·应期（仅 najia 模式）
+  meihua?: MeihuaAnalysis | null; // 梅花断卦要素：体用·生克·互错综·吉凶（仅梅花诸法）
 }
 
-// ---------- 八卦（经卦）数据 ----------
-// binary 顺序：初爻 → 二爻 → 三爻（由下而上）
-export const TRIGRAMS: Record<string, TrigramInfo> = {
-  qian: { id: 'qian', name: '乾', nature: '天', binary: [1, 1, 1] },
-  dui:  { id: 'dui',  name: '兑', nature: '泽', binary: [1, 1, 0] },
-  li:   { id: 'li',   name: '离', nature: '火', binary: [1, 0, 1] },
-  zhen: { id: 'zhen', name: '震', nature: '雷', binary: [1, 0, 0] },
-  xun:  { id: 'xun',  name: '巽', nature: '风', binary: [0, 1, 1] },
-  kan:  { id: 'kan',  name: '坎', nature: '水', binary: [0, 1, 0] },
-  gen:  { id: 'gen',  name: '艮', nature: '山', binary: [0, 0, 1] },
-  kun:  { id: 'kun',  name: '坤', nature: '地', binary: [0, 0, 0] },
-};
-
-// 先天八卦数 → 卦 id（1乾 2兑 3离 4震 5巽 6坎 7艮 8坤）
-const XIANTIAN: string[] = ['', 'qian', 'dui', 'li', 'zhen', 'xun', 'kan', 'gen', 'kun'];
-
-// ---------- 六十四卦（文王卦序） ----------
-// 每项：[卦序, 卦名, 上卦id, 下卦id]
-const HEXAGRAM_RAW: [number, string, string, string][] = [
-  [1, '乾为天', 'qian', 'qian'],
-  [2, '坤为地', 'kun', 'kun'],
-  [3, '水雷屯', 'kan', 'zhen'],
-  [4, '山水蒙', 'gen', 'kan'],
-  [5, '水天需', 'kan', 'qian'],
-  [6, '天水讼', 'qian', 'kan'],
-  [7, '地水师', 'kun', 'kan'],
-  [8, '水地比', 'kan', 'kun'],
-  [9, '风天小畜', 'xun', 'qian'],
-  [10, '天泽履', 'qian', 'dui'],
-  [11, '地天泰', 'kun', 'qian'],
-  [12, '天地否', 'qian', 'kun'],
-  [13, '天火同人', 'qian', 'li'],
-  [14, '火天大有', 'li', 'qian'],
-  [15, '地山谦', 'kun', 'gen'],
-  [16, '雷地豫', 'zhen', 'kun'],
-  [17, '泽雷随', 'dui', 'zhen'],
-  [18, '山风蛊', 'gen', 'xun'],
-  [19, '地泽临', 'kun', 'dui'],
-  [20, '风地观', 'xun', 'kun'],
-  [21, '火雷噬嗑', 'li', 'zhen'],
-  [22, '山火贲', 'gen', 'li'],
-  [23, '山地剥', 'gen', 'kun'],
-  [24, '地雷复', 'kun', 'zhen'],
-  [25, '天雷无妄', 'qian', 'zhen'],
-  [26, '山天大畜', 'gen', 'qian'],
-  [27, '山雷颐', 'gen', 'zhen'],
-  [28, '泽风大过', 'dui', 'xun'],
-  [29, '坎为水', 'kan', 'kan'],
-  [30, '离为火', 'li', 'li'],
-  [31, '泽山咸', 'dui', 'gen'],
-  [32, '雷风恒', 'zhen', 'xun'],
-  [33, '天山遁', 'qian', 'gen'],
-  [34, '雷天大壮', 'zhen', 'qian'],
-  [35, '火地晋', 'li', 'kun'],
-  [36, '地火明夷', 'kun', 'li'],
-  [37, '风火家人', 'xun', 'li'],
-  [38, '火泽睽', 'li', 'dui'],
-  [39, '水山蹇', 'kan', 'gen'],
-  [40, '雷水解', 'zhen', 'kan'],
-  [41, '山泽损', 'gen', 'dui'],
-  [42, '风雷益', 'xun', 'zhen'],
-  [43, '泽天夬', 'dui', 'qian'],
-  [44, '天风姤', 'qian', 'xun'],
-  [45, '泽地萃', 'dui', 'kun'],
-  [46, '地风升', 'kun', 'xun'],
-  [47, '泽水困', 'dui', 'kan'],
-  [48, '水风井', 'kan', 'xun'],
-  [49, '泽火革', 'dui', 'li'],
-  [50, '火风鼎', 'li', 'xun'],
-  [51, '震为雷', 'zhen', 'zhen'],
-  [52, '艮为山', 'gen', 'gen'],
-  [53, '风山渐', 'xun', 'gen'],
-  [54, '雷泽归妹', 'zhen', 'dui'],
-  [55, '雷火丰', 'zhen', 'li'],
-  [56, '火山旅', 'li', 'gen'],
-  [57, '巽为风', 'xun', 'xun'],
-  [58, '兑为泽', 'dui', 'dui'],
-  [59, '风水涣', 'xun', 'kan'],
-  [60, '水泽节', 'kan', 'dui'],
-  [61, '风泽中孚', 'xun', 'dui'],
-  [62, '雷山小过', 'zhen', 'gen'],
-  [63, '水火既济', 'kan', 'li'],
-  [64, '火水未济', 'li', 'kan'],
-];
-
-// ---------- 工具函数 ----------
-function trigramByBinary(bin: number[]): TrigramInfo {
-  const key = bin.join('');
-  for (const t of Object.values(TRIGRAMS)) {
-    if (t.binary.join('') === key) return t;
-  }
-  throw new Error(`未知经卦: ${key}`);
-}
-
-function trigramByMod8(n: number): TrigramInfo {
-  let m = ((n % 8) + 8) % 8;
-  if (m === 0) m = 8;
-  return TRIGRAMS[XIANTIAN[m]];
-}
-
-// 由六爻二进制（下→上）构造别卦信息
-function buildHexagram(linesBin: number[], changing: boolean[]): HexagramInfo {
-  const lowerBin = linesBin.slice(0, 3);
-  const upperBin = linesBin.slice(3, 6);
-  const lower = trigramByBinary(lowerBin);
-  const upper = trigramByBinary(upperBin);
-
-  const found = HEXAGRAM_RAW.find(
-    ([, , up, low]) => up === upper.id && low === lower.id
-  );
-  if (!found) {
-    throw new Error(`未找到对应别卦: 上${upper.name} 下${lower.name}`);
-  }
-  const [, name, , ] = found;
-  const lines: HexLine[] = linesBin.map((v, i) => {
-    const yin = v === 0;
-    const isChanging = changing[i];
-    let value: 6 | 7 | 8 | 9;
-    if (isChanging) value = yin ? 6 : 9;
-    else value = yin ? 8 : 7;
-    return { yin, changing: isChanging, value };
-  });
-
-  return { seq: found[0], name, upper, lower, lines };
-}
+// 八卦 / 六十四卦（文王卦序）/ 由爻构造别卦 —— 已移至 hexagram.ts，
+// 本文件统一从该模块引入（见顶部 import），避免与 meihua.ts 重复维护。
 
 // ---------- 起卦方法 ----------
 
@@ -674,26 +551,13 @@ const NAJIA_TABLE: Record<string, [string, number]> = {
   'kan_gen': ['dui', 4], 'kun_gen': ['dui', 5], 'zhen_gen': ['dui', 4], 'zhen_dui': ['dui', 3],
 };
 
-const BRANCH_ELEMENT: Record<string, string> = {
-  子: '水', 丑: '土', 寅: '木', 卯: '木', 辰: '土', 巳: '火', 午: '火', 未: '土', 申: '金', 酉: '金', 戌: '土', 亥: '水',
-};
-const SHENS = ['青龙', '朱雀', '勾陈', '螣蛇', '白虎', '玄武'];
-const SHENG: Record<string, string> = { 木: '火', 火: '土', 土: '金', 金: '水', 水: '木' };
-const KE: Record<string, string> = { 木: '土', 土: '水', 水: '火', 火: '金', 金: '木' };
+const SHENS: LiuShen[] = ['青龙', '朱雀', '勾陈', '螣蛇', '白虎', '玄武'];
 const TRIGRAM_NAME: Record<string, string> = {
   qian: '乾', dui: '兑', kan: '坎', zhen: '震', xun: '巽', li: '离', gen: '艮', kun: '坤',
 };
 
-function branchElement(b: string): string {
-  return BRANCH_ELEMENT[b] || '土';
-}
-function liuQinOf(palaceEl: string, yaoEl: string): LiuQin {
-  if (yaoEl === palaceEl) return '兄弟';
-  if (SHENG[palaceEl] === yaoEl) return '子孙'; // 我生
-  if (KE[palaceEl] === yaoEl) return '妻财'; // 我克
-  if (SHENG[yaoEl] === palaceEl) return '父母'; // 生我
-  return '官鬼'; // 克我
-}
+// 地支五行（BRANCH_ELEMENT）、五行生克（SHENG/KE）、六亲判定（liuQinOf）
+// 统一来自 ganzhi.ts / liuyao.ts（见顶部 import），本文件不再重复定义。
 function dayGanIndex(d: Date): number {
   const gy = d.getFullYear();
   const gm = d.getMonth() + 1;
@@ -726,7 +590,7 @@ function najiaForHex(hex: HexagramInfo, date: Date): NajiaData {
     const na = i < 3 ? innerNa : outerNa;
     const branch = na.branches[i % 3];
     const stem = na.stem;
-    const yaoEl = branchElement(branch);
+    const yaoEl = BRANCH_ELEMENT[branch] || '土';
     return {
       pos: i + 1,
       yin: ln.yin,
@@ -752,6 +616,9 @@ export function getNajia(cast: CastResult, date: Date = new Date()): NajiaData {
 function rand01(): number {
   return Math.random() < 0.5 ? 0 : 1;
 }
+
+// 梅花易数诸法（这些方法起出的卦附「体用」断卦要素）
+const MEIHUA_METHODS = new Set<CastMethod>(['number', 'time', 'char', 'direction', 'sound', 'report']);
 
 // 统一入口
 export function castDivination(req: CastRequest): CastResult {
@@ -789,15 +656,40 @@ export function castDivination(req: CastRequest): CastResult {
     default:
       throw new Error('未知的起卦方式');
   }
+
+  const now = new Date();
+
+  // 纳甲六爻：排盘 + 断卦要素（空亡 · 六冲六合卦 · 用神系统 · 月令旺衰 · 应期线索）
   if (req.najia) {
-    const now = new Date();
     result.najia = najiaForHex(result.benGua, now);
     result.najiaZhi = result.zhiGua ? najiaForHex(result.zhiGua, now) : null;
+    result.liuyao = analyzeLiuyao({
+      seq: result.benGua.seq,
+      palaceElement: result.najia.palaceElement,
+      lines: result.najia.lines,
+      date: now,
+      question: req.question,
+      yongShenTopic: req.yongShenTopic,
+    });
   }
+
+  // 梅花易数诸法：附体用生克 / 互卦错卦综卦 / 月令旺衰 / 吉凶定性
+  if (MEIHUA_METHODS.has(req.method)) {
+    result.meihua = analyzeMeihua({
+      benGua: result.benGua,
+      changingPositions: result.changingPositions,
+      date: now,
+    });
+  }
+
   return result;
 }
 
 // 将起卦结果转为注入 systemPrompt 的文本，指导模型依据此卦象解读
+//
+// 结构分两层：① 卦象与断卦要素（事实，全部由程序算定）
+//             ② 作答要求（方法）
+// 模型不得自行推算干支、用神、体用——这些都已在此给出。
 export function hexagramToPrompt(cast: CastResult): string {
   const { benGua, zhiGua, changingPositions } = cast;
   const lineStr = benGua.lines
@@ -817,7 +709,34 @@ export function hexagramToPrompt(cast: CastResult): string {
   } else {
     text += `六爻皆静，无变爻，无需推之卦。\n`;
   }
-  text += '请严格依据上述卦象，结合来访者所问之事，依次给出：① 本卦卦辞与白话释义；② 对应爻位之爻辞与释义（有变爻则重点引述变爻爻辞）；③ 若有之卦，简述变卦要旨；④ 通达可行的断卦指引与处世提醒；⑤ 最后务必单独成段，先以「## 总结」为标题行独占一行，其下用最通俗的现代白话，把核心建议浓缩成 2-4 句大白话，少引古文、多说人话，让来访者一看就懂、便于落实。语气古朴通达，如长者点拨。';
+
+  // ---- 六爻断卦要素（仅纳甲模式）----
+  if (cast.liuyao) {
+    const l = cast.liuyao;
+    text += '\n【六爻断卦要素 · 已由系统算定，请严格据此论断，不得自行推算】\n';
+    for (const e of l.evidence) text += `· ${e}\n`;
+    text += `· 应期线索：${l.timingHints.join('；')}\n`;
+  }
+
+  // ---- 梅花易数断卦要素（仅梅花诸法）----
+  if (cast.meihua) {
+    const m = cast.meihua;
+    text += '\n【梅花易数断卦要素 · 已由系统算定，请严格据此论断，不得自行推算】\n';
+    for (const e of m.evidence) text += `· ${e}\n`;
+    text += '· 阶段推演：\n';
+    for (const s of m.stages) text += `  - ${s.stage}：${s.text}（${s.favorable ? '利于体' : '不利于体'}）\n`;
+    text += `· 吉凶定性：${m.judgement.outcome}——${m.judgement.summary}\n`;
+    text += `· 应期线索：${m.timingHints.join('；')}\n`;
+  }
+
+  // ---- 解读方法论（与上述证据分层：证据是「是什么」，方法论是「怎么解」）----
+  if (cast.liuyao) {
+    text += '\n' + LIUYAO_INTERPRETATION + '\n';
+  } else if (cast.meihua) {
+    text += '\n' + MEIHUA_INTERPRETATION + '\n';
+  }
+
+  text += '\n请严格依据上述卦象（及断卦要素，若有），结合来访者所问之事，依次给出：① 本卦卦辞与白话释义；② 对应爻位之爻辞与释义（有变爻则重点引述变爻爻辞）；③ 若有之卦，简述变卦要旨；④ 通达可行的断卦指引与处世提醒；⑤ 最后务必单独成段，先以「## 总结」为标题行独占一行，其下用最通俗的现代白话，把核心建议浓缩成 2-4 句大白话，少引古文、多说人话，让来访者一看就懂、便于落实。语气古朴通达，如长者点拨。';
   return text;
 }
 

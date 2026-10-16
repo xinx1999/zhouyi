@@ -302,4 +302,6 @@ export function clearAllData(): void {
   db.exec('DELETE FROM sessions');
 }
 
-export default db;
+// 注：不导出 default 实例——调用方统一用 `import * as db from './db.js'`。
+// 保留 default 会让 composite 项目在生成声明时报 TS4023
+//（无法为 BetterSqlite3.Database 命名类型）。

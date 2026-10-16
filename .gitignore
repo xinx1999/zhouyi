@@ -4,3 +4,4 @@ data/
 *.log
 dist/
 .DS_Store
+.workbuddy-ai/

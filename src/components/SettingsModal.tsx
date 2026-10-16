@@ -2,13 +2,14 @@ import { useState } from 'react';
 
 interface Props {
   onClose: () => void;
-  onSave: (cfg: { apiKey?: string; baseUrl?: string; model?: string }) => Promise<void> | void;
+  onSave: (cfg: { apiKey?: string; baseUrl?: string; model?: string; adminToken?: string }) => Promise<void> | void;
 }
 
 export function SettingsModal({ onClose, onSave }: Props) {
   const [apiKey, setApiKey] = useState('');
   const [baseUrl, setBaseUrl] = useState('');
   const [model, setModel] = useState('');
+  const [adminToken, setAdminToken] = useState(() => localStorage.getItem('adminToken') || '');
   const [msg, setMsg] = useState('');
 
   const save = async () => {
@@ -18,7 +19,10 @@ export function SettingsModal({ onClose, onSave }: Props) {
         apiKey: apiKey.trim() || undefined,
         baseUrl: baseUrl.trim() || undefined,
         model: model.trim() || undefined,
+        adminToken: adminToken.trim() || undefined,
       });
+      if (adminToken.trim()) localStorage.setItem('adminToken', adminToken.trim());
+      else localStorage.removeItem('adminToken');
       setMsg('已保存（当前进程有效，重启后需重新设置）');
       setTimeout(onClose, 800);
     } catch (e: any) {
@@ -68,6 +72,16 @@ export function SettingsModal({ onClose, onSave }: Props) {
               value={model}
               onChange={(e) => setModel(e.target.value)}
               placeholder="agnes-2.0-flash"
+            />
+          </label>
+          <label className="flex flex-col gap-1.5 text-[13px] text-fg-dim flex-1">
+            管理令牌
+            <input
+              className="field"
+              value={adminToken}
+              onChange={(e) => setAdminToken(e.target.value)}
+              placeholder="留空则无保护（若服务端已设置 APP_ADMIN_TOKEN 则必填）"
+              type="password"
             />
           </label>
           {msg && <p className="modal-hint">{msg}</p>}

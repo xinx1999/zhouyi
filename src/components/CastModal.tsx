@@ -1,8 +1,17 @@
 import { useState } from 'react';
-import type { CastRequest, CastMethod } from '../types';
+import type { CastRequest, CastMethod, YongShenTopic } from '../types';
 import { CAST_META, type CastMethodKey } from '../castCategories';
 
 export type CastType = CastMethodKey;
+
+// 纳甲六爻的占问主题 —— 决定用神（用神定，则原神/忌神/仇神随之而定）
+const YONG_SHEN_OPTIONS: { key: YongShenTopic; label: string; hint: string }[] = [
+  { key: 'career', label: '事业', hint: '事业官职、官司、忧患 → 用神取「官鬼」' },
+  { key: 'wealth', label: '财运', hint: '财运、男问感情 → 用神取「妻财」' },
+  { key: 'document', label: '文书', hint: '文书合同、长辈、房产车辆 → 用神取「父母」' },
+  { key: 'health', label: '健康', hint: '子女、健康平安 → 用神取「子孙」' },
+  { key: 'people', label: '人际', hint: '合作竞争、朋友 → 用神取「兄弟」' },
+];
 
 interface Props {
   type: CastType;
@@ -53,6 +62,7 @@ export function CastModal({ type, onClose, onSubmit }: Props) {
   const [question, setQuestion] = useState('');
   const [err, setErr] = useState('');
   const [base, setBase] = useState<CastMethod>('coin');
+  const [topic, setTopic] = useState<YongShenTopic>('career');
 
   const q = question.trim() || undefined;
   const meta = CAST_META[type];
@@ -159,6 +169,7 @@ export function CastModal({ type, onClose, onSubmit }: Props) {
         baseReq.numbers = [na, nb];
       }
       baseReq.question = q;
+      baseReq.yongShenTopic = topic;
       onSubmit(baseReq);
     }
   };
@@ -406,6 +417,27 @@ export function CastModal({ type, onClose, onSubmit }: Props) {
 
           {type === 'najia' && (
             <>
+              <div className="mb-3">
+                <span className="block text-[13px] text-fg-dim mb-2">占问主题（定用神）</span>
+                <div className="flex flex-wrap gap-2">
+                  {YONG_SHEN_OPTIONS.map((o) => (
+                    <button
+                      key={o.key}
+                      type="button"
+                      className={
+                        'btn btn-ghost btn-sm ' +
+                        (topic === o.key ? 'border-gold bg-gold-dim/30 text-gold-bright' : 'text-fg-dim')
+                      }
+                      onClick={() => setTopic(o.key)}
+                    >
+                      {o.label}
+                    </button>
+                  ))}
+                </div>
+                <p className="modal-hint mt-2">
+                  {YONG_SHEN_OPTIONS.find((o) => o.key === topic)?.hint}
+                </p>
+              </div>
               <div className="mb-3">
                 <span className="block text-[13px] text-fg-dim mb-2">基础起卦法</span>
                 <div className="flex flex-wrap gap-2">

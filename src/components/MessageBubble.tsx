@@ -1,5 +1,12 @@
 import type { ChatMessage } from '../types';
 import { HexagramCard } from './HexagramCard';
+import { BaziPanel } from './BaziPanel';
+import { ZiweiPanel } from './ZiweiPanel';
+import { TarotPanel } from './TarotPanel';
+import { QimenPanel } from './QimenPanel';
+import { DaliurenPanel } from './DaliurenPanel';
+import { DreamPanel } from './DreamPanel';
+import { HepanPanel } from './HepanPanel';
 
 // 极简 markdown：支持 **加粗** 与换行，安全渲染为 React 节点
 function renderInline(text: string): React.ReactNode[] {
@@ -74,6 +81,13 @@ export function MessageBubble({ message }: { message: ChatMessage }) {
       )}
       <div className={'max-w-[84%] flex flex-col gap-2.5 min-w-0' + (isUser ? ' items-end' : '')}>
         {!isUser && message.hexagram && <HexagramCard cast={message.hexagram} />}
+        {!isUser && message.bazi && <BaziPanel chart={message.bazi} />}
+        {!isUser && message.ziwei && <ZiweiPanel chart={message.ziwei} />}
+        {!isUser && message.tarot && <TarotPanel result={message.tarot} />}
+        {!isUser && message.qimen && <QimenPanel chart={message.qimen} />}
+        {!isUser && message.daliuren && <DaliurenPanel chart={message.daliuren} />}
+        {!isUser && message.dream && <DreamPanel result={message.dream} />}
+        {!isUser && message.hepan && <HepanPanel result={message.hepan} />}
         <div
           className={
             'px-3.5 py-3 rounded-card text-[15px] leading-[1.85] break-words ' +

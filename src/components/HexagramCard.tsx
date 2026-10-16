@@ -1,5 +1,6 @@
 import type { CastResult, HexagramInfo, HexLine } from '../types';
 import { NajiaPanel } from './NajiaPanel';
+import { MeihuaPanel } from './MeihuaPanel';
 import { YarrowSteps } from './YarrowSteps';
 
 const POS = ['初', '二', '三', '四', '五', '上'];
@@ -18,14 +19,13 @@ function methodName(m: string): string {
     case 'sound': return '声音起卦 · 梅花易数';
     case 'report': return '报数起卦 · 梅花易数';
     case 'yarrow': return '揲蓍法 · 大衍之数';
-    case 'najia': return '纳甲六爻';
     default: return m;
   }
 }
 
 function YaoRow({ line, label }: { line: HexLine; label: string }) {
   return (
-    <div className={'yao-row flex items-center gap-2.5 w-[130px] justify-between' + (line.changing ? ' changing' : '')}>
+    <div className={'yao-row flex items-center gap-2.5 w-[146px] justify-between' + (line.changing ? ' changing' : '')}>
       <span className="yao-label text-xs text-fg-dim w-7 text-right flex-none">{label}</span>
       <span className="yao-symbol flex-1 flex justify-center">
         {line.yin ? (
@@ -69,13 +69,45 @@ function GuaBlock({ gua, tag }: { gua: HexagramInfo; tag: string }) {
   );
 }
 
+// 干支条：年月日时四柱 + 月建 + 旬空（起卦引擎已算定，此处只展示）
+function GanZhiStrip({ cast }: { cast: CastResult }) {
+  const gz = cast.liuyao?.ganZhi ?? cast.meihua?.ganZhi;
+  if (!gz) return null;
+  const PILLARS: [string, string][] = [
+    ['年', gz.year.ganZhi],
+    ['月', gz.month.ganZhi],
+    ['日', gz.day.ganZhi],
+    ['时', gz.hour.ganZhi],
+  ];
+  return (
+    <div className="flex items-center gap-x-3 gap-y-1 flex-wrap text-[12px] text-fg-dim mb-2.5 pb-2.5 border-b border-line">
+      {PILLARS.map(([label, val]) => (
+        <span key={label}>
+          <span className="text-fg-faint">{label}</span>
+          <span className="text-fg ml-0.5">{val}</span>
+        </span>
+      ))}
+      <span className="text-gold">月建 {gz.month.zhi}</span>
+      {cast.liuyao && (
+        <span className="text-fg-faint">
+          旬空 {cast.liuyao.kongWang.xun}（{cast.liuyao.kongWang.kong.join('、')}）
+        </span>
+      )}
+      {gz.jieQi && <span className="text-vermilion">{gz.jieQi}</span>}
+    </div>
+  );
+}
+
 export function HexagramCard({ cast }: { cast: CastResult }) {
   return (
     <div className="bg-gradient-to-b from-[rgba(43,35,24,0.7)] to-[rgba(28,23,17,0.7)] border border-gold-dim rounded-card p-[14px] pb-1.5 shadow-[inset_0_0_30px_rgba(201,169,106,0.05)]">
       <div className="flex items-baseline gap-2.5 mb-2.5 flex-wrap">
-        <span className="font-brush text-gold-bright text-[17px] tracking-wide">{methodName(cast.method)}</span>
+        <span className="font-brush text-gold-bright text-[17px] tracking-wide">
+          {cast.liuyao ? '纳甲六爻' : methodName(cast.method)}
+        </span>
         {cast.question && <span className="text-fg-dim text-[13px]">「{cast.question}」</span>}
       </div>
+      <GanZhiStrip cast={cast} />
       <div className="flex items-center justify-center gap-[18px] flex-wrap">
         <GuaBlock gua={cast.benGua} tag="本卦" />
         {cast.zhiGua && <div className="text-[22px] text-gold">→</div>}
@@ -88,10 +120,16 @@ export function HexagramCard({ cast }: { cast: CastResult }) {
       {cast.yarrowSteps && cast.yarrowSteps.length > 0 && <YarrowSteps steps={cast.yarrowSteps} />}
       {cast.najia && (
         <div className="mt-3.5 grid grid-cols-1 md:grid-cols-2 gap-3.5">
-          <NajiaPanel data={cast.najia} title="本卦排盘" hideTip={!!cast.najiaZhi} />
+          <NajiaPanel
+            data={cast.najia}
+            title="本卦排盘"
+            hideTip={!!cast.najiaZhi}
+            analysis={cast.liuyao}
+          />
           {cast.najiaZhi && <NajiaPanel data={cast.najiaZhi} title="变卦排盘" />}
         </div>
       )}
+      {cast.meihua && <MeihuaPanel data={cast.meihua} />}
     </div>
   );
 }

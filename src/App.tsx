@@ -4,14 +4,20 @@ import { ChatView } from './components/ChatView';
 import { HomeView } from './components/HomeView';
 import type { CastPreset } from './components/QuickActions';
 import { CastModal, type CastType } from './components/CastModal';
+import { BirthModal } from './components/BirthModal';
+import { TarotModal } from './components/TarotModal';
+import { DreamModal } from './components/DreamModal';
+import { HepanModal } from './components/HepanModal';
+import { ImageReadingModal } from './components/ImageReadingModal';
+import { MbtiQuiz } from './components/MbtiQuiz';
 import { ConfirmModal } from './components/ConfirmModal';
 import { LingQianDetailModal } from './components/LingQianDetailModal';
 import { SettingsModal } from './components/SettingsModal';
 import { Composer } from './components/Composer';
-import { sendChat, fetchModels, saveEnvConfig, fetchDaily, fetchHistory, loadSession, deleteHistory, recordLingQian } from './api';
+import { sendChat, fetchModels, saveEnvConfig, fetchDaily, fetchHistory, loadSession, deleteHistory, recordLingQian, clearAllHistory } from './api';
 import { DEFAULT_SYSTEM_PROMPT } from './prompt';
 import { LINGQIAN_BY_NUM, LINGQIAN_LEVEL_COLOR, type LingQian } from './content';
-import type { CastRequest, ChatMessage, DailyData, HistoryItem } from './types';
+import type { CastRequest, ChatMessage, DailyData, HistoryItem, BaziInput, ZiweiInput, TarotInput, QimenInput, DaliurenInput, DreamInput, HepanInput, ImageReadingInput, ImageInput } from './types';
 
 function uid(): string {
   return crypto.randomUUID();
@@ -24,8 +30,18 @@ export default function App() {
   const [sessionId, setSessionId] = useState(() => uid());
   const [model, setModel] = useState('');
   const [castModal, setCastModal] = useState<null | CastType>(null);
+  const [baziOpen, setBaziOpen] = useState(false);
+  const [ziweiOpen, setZiweiOpen] = useState(false);
+  const [tarotOpen, setTarotOpen] = useState(false);
+  const [qimenOpen, setQimenOpen] = useState(false);
+  const [daliurenOpen, setDaliurenOpen] = useState(false);
+  const [dreamOpen, setDreamOpen] = useState(false);
+  const [hepanOpen, setHepanOpen] = useState(false);
+  const [imageOpen, setImageOpen] = useState<null | 'face' | 'palm'>(null);
+  const [mbtiOpen, setMbtiOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [error, setError] = useState('');
+  const [backendNotice, setBackendNotice] = useState('');
   const [view, setView] = useState<'home' | 'chat'>('home');
   const [daily, setDaily] = useState<DailyData | null>(null);
   const [loadingDaily, setLoadingDaily] = useState(true);
@@ -50,8 +66,15 @@ export default function App() {
       .catch(() => {});
     setLoadingDaily(true);
     fetchDaily()
-      .then(setDaily)
-      .catch(() => {})
+      .then((d) => {
+        setDaily(d);
+        setBackendNotice('');
+      })
+      .catch(() =>
+        setBackendNotice(
+          '无法连接后端服务，请确认已运行 npm run dev（前端:5173 / 后端:3000）。今日一卦、每日一句与历史记录暂不可用。',
+        ),
+      )
       .finally(() => setLoadingDaily(false));
     fetchHistory(100)
       .then(setHistory)
@@ -84,7 +107,7 @@ export default function App() {
   }, []);
 
   const doSend = useCallback(
-    async (text: string, cast?: CastRequest, targetSessionId?: string, resume?: boolean) => {
+    async (text: string, cast?: CastRequest, targetSessionId?: string, resume?: boolean, bazi?: BaziInput, ziwei?: ZiweiInput, tarot?: TarotInput, qimen?: QimenInput, daliuren?: DaliurenInput, dream?: DreamInput, hepan?: HepanInput, image?: ImageReadingInput) => {
       // 续答（打开未完成的卦）不应被 isLoading 阻挡：那条记录往往是被中断的流式对话留下的，
       // 此时 isLoading 仍为 true，若直接 return 会导致「首点不续答、刷新后才续答」
       if (isLoading && !resume) return;
@@ -118,15 +141,38 @@ export default function App() {
       await sendChat(
         {
           sessionId: sid,
-          message: userText || '请为我起卦解读。',
+          message: userText || (bazi ? '请为我解读这份八字命盘。' : ziwei ? '请为我论这张紫微命盘。' : tarot ? '请为我解读这副塔罗牌。' : qimen ? '请为我断这个奇门局。' : daliuren ? '请为我断这一课。' : dream ? '请为我解这个梦。' : hepan ? '请为我做一次合盘。' : image?.kind === 'face' ? '请为我看面相。' : image?.kind === 'palm' ? '请为我看手相。' : '请为我起卦解读。'),
           model,
           systemPrompt: DEFAULT_SYSTEM_PROMPT,
           cast: resume ? undefined : cast,
+          bazi: resume ? undefined : bazi,
+          ziwei: resume ? undefined : ziwei,
+          tarot: resume ? undefined : tarot,
+          qimen: resume ? undefined : qimen,
+          daliuren: resume ? undefined : daliuren,
+          dream: resume ? undefined : dream,
+          hepan: resume ? undefined : hepan,
+          face: resume ? undefined : image?.kind === 'face' ? image.data : undefined,
+          palm: resume ? undefined : image?.kind === 'palm' ? image.data : undefined,
           resume: resume || undefined,
         },
         {
           onHexagram: (h) =>
             setMessages((prev) => prev.map((m) => (m.id === assistantId ? { ...m, hexagram: h } : m))),
+          onBazi: (c) =>
+            setMessages((prev) => prev.map((m) => (m.id === assistantId ? { ...m, bazi: c } : m))),
+          onZiwei: (c) =>
+            setMessages((prev) => prev.map((m) => (m.id === assistantId ? { ...m, ziwei: c } : m))),
+          onTarot: (r) =>
+            setMessages((prev) => prev.map((m) => (m.id === assistantId ? { ...m, tarot: r } : m))),
+          onQimen: (c) =>
+            setMessages((prev) => prev.map((m) => (m.id === assistantId ? { ...m, qimen: c } : m))),
+          onDaliuren: (c) =>
+            setMessages((prev) => prev.map((m) => (m.id === assistantId ? { ...m, daliuren: c } : m))),
+          onDream: (r) =>
+            setMessages((prev) => prev.map((m) => (m.id === assistantId ? { ...m, dream: r } : m))),
+          onHepan: (r) =>
+            setMessages((prev) => prev.map((m) => (m.id === assistantId ? { ...m, hepan: r } : m))),
           onText: (t) =>
             setMessages((prev) =>
               prev.map((m) => (m.id === assistantId ? { ...m, content: m.content + t } : m))
@@ -223,6 +269,128 @@ export default function App() {
     [guardIncomplete]
   );
 
+  // 从首页发起的八字排盘：新开一局对话，先排盘（SSE bazi 事件）再由占卜师解读
+  const homeBazi = useCallback(
+    (input: BaziInput) => {
+      guardIncomplete(() => {
+        const id = uid();
+        setMessages([]);
+        setSessionId(id);
+        setError('');
+        doSend('请为我解读这份八字命盘，重点分析日主强弱、格局用神与近年运势。', undefined, id, false, input);
+      });
+    },
+    [guardIncomplete, doSend]
+  );
+
+  // 从首页发起的紫微排盘：同上，走 SSE ziwei 事件
+  const homeZiwei = useCallback(
+    (input: ZiweiInput) => {
+      guardIncomplete(() => {
+        const id = uid();
+        setMessages([]);
+        setSessionId(id);
+        setError('');
+        doSend('请为我论这张紫微命盘，重点分析命宫格局、三方四正、四化落宫与大限流年。', undefined, id, false, undefined, input);
+      });
+    },
+    [guardIncomplete, doSend]
+  );
+
+  // 从首页发起的塔罗抽牌：走 SSE tarot 事件
+  const homeTarot = useCallback(
+    (input: TarotInput) => {
+      guardIncomplete(() => {
+        const id = uid();
+        setMessages([]);
+        setSessionId(id);
+        setError('');
+        doSend('请为我解读这副塔罗牌，逐位对应牌阵，连牌成势，最后回扣我所问之事。', undefined, id, false, undefined, undefined, input);
+      });
+    },
+    [guardIncomplete, doSend]
+  );
+
+  // 从首页发起的奇门排盘：走 SSE qimen 事件
+  const homeQimen = useCallback(
+    (input: QimenInput) => {
+      guardIncomplete(() => {
+        const id = uid();
+        setMessages([]);
+        setSessionId(id);
+        setError('');
+        doSend('请为我断这个奇门局，重点分析值符值使、九宫格局、旺相休囚，并指出宜动的方位与时辰。', undefined, id, false, undefined, undefined, undefined, input);
+      });
+    },
+    [guardIncomplete, doSend]
+  );
+
+  // 从首页发起的大六壬起课：走 SSE daliuren 事件
+  const homeDaliuren = useCallback(
+    (input: DaliurenInput) => {
+      guardIncomplete(() => {
+        const id = uid();
+        setMessages([]);
+        setSessionId(id);
+        setError('');
+        doSend('请为我断这一课，先定课体，再依次说清初传、中传、末传所主之事，并参天将与神煞。', undefined, id, false, undefined, undefined, undefined, undefined, input);
+      });
+    },
+    [guardIncomplete, doSend]
+  );
+
+  // 从首页发起的解梦：走 SSE dream 事件
+  const homeDream = useCallback(
+    (input: DreamInput) => {
+      guardIncomplete(() => {
+        const id = uid();
+        setMessages([]);
+        setSessionId(id);
+        setError('');
+        doSend(
+          `我梦见：${input.dreamText}\n\n请为我解这个梦。`,
+          undefined, id, false, undefined, undefined, undefined, undefined, undefined, input
+        );
+      });
+    },
+    [guardIncomplete, doSend]
+  );
+
+  // 从首页发起的合盘：走 SSE hepan 事件
+  const homeHepan = useCallback(
+    (input: HepanInput) => {
+      guardIncomplete(() => {
+        const id = uid();
+        setMessages([]);
+        setSessionId(id);
+        setError('');
+        doSend(
+          '请为我和对方做一次合盘，先看日柱（夫妻宫），再论生肖与五行互补，对相冲相害处给相处避就的建议。',
+          undefined, id, false, undefined, undefined, undefined, undefined, undefined, undefined, input
+        );
+      });
+    },
+    [guardIncomplete, doSend]
+  );
+
+  // 从首页发起的看相：图片随多模态消息直传模型
+  const homeImage = useCallback(
+    (kind: 'face' | 'palm', input: ImageInput) => {
+      guardIncomplete(() => {
+        const id = uid();
+        setMessages([]);
+        setSessionId(id);
+        setError('');
+        doSend(
+          kind === 'face' ? '请为我看面相。' : '请为我看手相。',
+          undefined, id, false, undefined, undefined, undefined, undefined, undefined, undefined, undefined,
+          { kind, data: input }
+        );
+      });
+    },
+    [guardIncomplete, doSend]
+  );
+
   const handlePick = (p: CastPreset) =>
     guardIncomplete(() => doSend(p.message, p.cast));
   const handleCastSubmit = (cast: CastRequest) => {
@@ -303,6 +471,28 @@ export default function App() {
     []
   );
 
+  const exportHist = useCallback(() => {
+    const blob = new Blob([JSON.stringify(history, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `周易算-历史记录-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [history]);
+
+  const clearHist = useCallback(async () => {
+    if (!window.confirm('确定清空全部历史记录吗？此操作不可恢复。')) return;
+    try {
+      const token = localStorage.getItem('adminToken') || undefined;
+      await clearAllHistory(token || undefined);
+      setHistory([]);
+      setError('');
+    } catch (e: any) {
+      setError('清空失败：' + (e?.message || '未知错误'));
+    }
+  }, []);
+
   // 从「记录」中点开一支求签 → 弹出签文详情
   const openLingQianRecord = useCallback((item: HistoryItem) => {
     const sign = item.num != null ? LINGQIAN_BY_NUM[item.num] : undefined;
@@ -327,6 +517,12 @@ export default function App() {
     <div className="flex flex-col h-full max-w-app mx-auto relative">
       <Header onNew={newSession} onHome={goHome} onSettings={() => setSettingsOpen(true)} />
 
+      {backendNotice && (
+        <div className="bg-[rgba(192,57,43,0.95)] text-white text-[13px] leading-[1.5] px-4 py-2 text-center z-40">
+          ⚠ {backendNotice}
+        </div>
+      )}
+
       {view === 'home' ? (
         <main className="flex-1 overflow-y-auto no-scrollbar px-4 py-4 pb-6">
           <HomeView
@@ -337,10 +533,22 @@ export default function App() {
             onAsk={homeAsk}
             onRandom={homeRandom}
             onOpenCast={homeOpenCast}
+            onOpenBazi={() => setBaziOpen(true)}
+            onOpenZiwei={() => setZiweiOpen(true)}
+            onOpenTarot={() => setTarotOpen(true)}
+            onOpenQimen={() => setQimenOpen(true)}
+            onOpenDaliuren={() => setDaliurenOpen(true)}
+            onOpenDream={() => setDreamOpen(true)}
+            onOpenHepan={() => setHepanOpen(true)}
+            onOpenFace={() => setImageOpen('face')}
+            onOpenPalm={() => setImageOpen('palm')}
+            onOpenMbti={() => setMbtiOpen(true)}
             onOpenHistory={openHistory}
             onOpenLingQian={openLingQianRecord}
             onRecord={handleRecordLingQian}
             onDeleteHistory={deleteHist}
+            onExportHistory={exportHist}
+            onClearHistory={clearHist}
           />
         </main>
       ) : (
@@ -377,6 +585,92 @@ export default function App() {
       {castModal && (
         <CastModal type={castModal} onClose={() => setCastModal(null)} onSubmit={handleCastSubmit} />
       )}
+      {baziOpen && (
+        <BirthModal
+          title="八字排盘"
+          hint="八字以出生时刻的四柱干支论命。请填公历生日与钟表时刻，系统自动换算节气月建与四柱。"
+          onClose={() => setBaziOpen(false)}
+          onSubmit={(input) => {
+            setBaziOpen(false);
+            homeBazi(input);
+          }}
+        />
+      )}
+      {ziweiOpen && (
+        <BirthModal
+          title="紫微斗数"
+          hint="紫微斗数以出生时刻定十二宫与星曜。请填公历生日与钟表时刻，系统自动排星盘（含四化与大限）。"
+          submitText="排星盘"
+          onClose={() => setZiweiOpen(false)}
+          onSubmit={(input) => {
+            setZiweiOpen(false);
+            homeZiwei(input);
+          }}
+        />
+      )}
+      {tarotOpen && (
+        <TarotModal
+          onClose={() => setTarotOpen(false)}
+          onSubmit={(input) => {
+            setTarotOpen(false);
+            homeTarot(input);
+          }}
+        />
+      )}
+      {qimenOpen && (
+        <BirthModal
+          title="奇门遁甲"
+          hint="奇门以起局时刻的干支排九宫五层盘（地盘/天盘/八门/九星/八神）。请填公历时刻，系统按节气自动定局（拆补法）。"
+          submitText="排局"
+          onClose={() => setQimenOpen(false)}
+          onSubmit={(input) => {
+            setQimenOpen(false);
+            homeQimen(input);
+          }}
+        />
+      )}
+      {daliurenOpen && (
+        <BirthModal
+          title="大六壬"
+          hint="大六壬以月将加占时立天地盘，观四课三传以断事之终始。请填公历起课时刻，系统自动定月将、天地盘、四课、三传。"
+          submitText="起课"
+          onClose={() => setDaliurenOpen(false)}
+          onSubmit={(input) => {
+            setDaliurenOpen(false);
+            homeDaliuren(input);
+          }}
+        />
+      )}
+      {dreamOpen && (
+        <DreamModal
+          onClose={() => setDreamOpen(false)}
+          onSubmit={(input) => {
+            setDreamOpen(false);
+            homeDream(input);
+          }}
+        />
+      )}
+      {hepanOpen && (
+        <HepanModal
+          onClose={() => setHepanOpen(false)}
+          onSubmit={(input) => {
+            setHepanOpen(false);
+            homeHepan(input);
+          }}
+        />
+      )}
+      {imageOpen && (
+        <ImageReadingModal
+          kind={imageOpen}
+          onClose={() => setImageOpen(null)}
+          onSubmit={(input) => {
+            const kind = imageOpen;
+            setImageOpen(null);
+            homeImage(kind, input);
+          }}
+        />
+      )}
+      {mbtiOpen && <MbtiQuiz onClose={() => setMbtiOpen(false)} />}
       {lingQianView && (
         <LingQianDetailModal
           sign={lingQianView.sign}
